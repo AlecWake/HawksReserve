@@ -29,3 +29,11 @@ class SystemConstraints(Base):
     id = Column(Integer, primary_key=True)
     max_weekly_min = Column(Integer, default=360)   # 6 hours
     max_session_min = Column(Integer, default=120)  # 2 hours
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, default="student")  # "student" or "admin"

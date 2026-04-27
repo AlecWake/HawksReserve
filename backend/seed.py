@@ -2,6 +2,8 @@
 
 from database import engine, SessionLocal
 from models import Base, Room, Reservation, SystemConstraints
+from passlib.hash import bcrypt
+from models import Base, Room, Reservation, SystemConstraints, User
 
 Base.metadata.create_all(bind=engine)
 
@@ -11,6 +13,15 @@ db.query(Reservation).delete()
 db.query(Room).delete()
 db.query(SystemConstraints).delete()
 db.add(SystemConstraints(max_weekly_min=360, max_session_min=120))
+db.query(User).delete()
+db.add_all([
+    User(username="student", password_hash=bcrypt.hash("student"), role="student"),
+    User(username="grant", password_hash=bcrypt.hash("meidinger"), role="student"),
+    User(username="alexander", password_hash=bcrypt.hash("wake"), role="student"),
+    User(username="anna", password_hash=bcrypt.hash("wille"), role="student"),
+    User(username="maya", password_hash=bcrypt.hash("wyganowska"), role="student"),
+    User(username="admin",   password_hash=bcrypt.hash("admin"),   role="admin"),
+])
 db.commit()
 
 rooms = [
