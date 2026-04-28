@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 import models
-from routers import rooms, reservations, admin
+from routers import rooms, reservations, admin, auth
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -19,6 +20,7 @@ app.add_middleware(
 app.include_router(rooms.router)
 app.include_router(reservations.router)
 app.include_router(admin.router)
+app.include_router(auth.router)
 
 
 @app.get("/")

@@ -9,7 +9,7 @@
   <header>
     <div class="header-left">
       <a href="index.html" style="font-size:20px; text-decoration:none; color:#555;">&#8592;</a>
-      <img src="../und-logo-png-transparent.png" alt="UND" class="logo">
+      <img src="./images/und-logo-png-transparent.png" alt="UND" class="logo">
       <span class="header-title">HawkReserve</span>
     </div>
     <div class="header-right">
@@ -139,8 +139,14 @@
       const timeGrid = document.getElementById("time-grid");
       timeGrid.innerHTML = "";
 
+      // for today, skip time slots that are already in the past
+      const now = new Date();
+      const isToday = dateStr === today.toISOString().split("T")[0];
+      const nowMins = isToday ? now.getHours() * 60 + now.getMinutes() : 0;
+
       // start time slots: from open to (close - 60 min) in 15-min steps
       for (let t = hours.open; t <= hours.close - 60; t += 15) {
+        if (isToday && t <= nowMins) continue;
         const hh = String(Math.floor(t / 60)).padStart(2, "0");
         const mm = String(t % 60).padStart(2, "0");
         const tb = document.createElement("button");

@@ -226,9 +226,9 @@ button:disabled { background: #aaa; cursor: not-allowed; }
 /* ---- Time grid ---- */
 .time-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
-  max-width: 360px;
+  max-width: 550px;
   margin-bottom: 24px;
 }
 

@@ -9,7 +9,7 @@
   <header>
     <div class="header-left">
       <a href="javascript:history.back()" style="font-size:20px; text-decoration:none; color:#555;">&#8592;</a>
-      <img src="../und-logo-png-transparent.png" alt="UND" class="logo">
+      <img src="./images/und-logo-png-transparent.png" alt="UND" class="logo">
       <span class="header-title">HawkReserve</span>
     </div>
     <div class="header-right">
@@ -93,8 +93,9 @@
       if (data.success) {
         result.innerHTML = `
           <div class="success-box">
-            Reservation confirmed! <a href="index.html">Back to home</a>
+            Reservation confirmed! Redirecting...</a>
           </div>`;
+        setTimeout(() => { location.href = "index.html"; }, 1500);
       } else {
         result.innerHTML = `<div class="error-box">${data.error}</div>`;
         document.getElementById("confirm-btn").disabled = false;

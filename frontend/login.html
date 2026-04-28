@@ -8,7 +8,7 @@
 <body class="login-page">
 
   <div class="login-card">
-    <img src="../und-university-of-north-dakota-logo-png_seeklogo-433654.png" alt="University of North Dakota" class="login-logo">
+    <img src="./images/und-university-of-north-dakota-logo-png_seeklogo-433654.png" alt="University of North Dakota" class="login-logo">
     <h1>HawkReserve</h1>
 
     <div class="form-group">
@@ -32,20 +32,30 @@
       location.href = existing.role === "admin" ? "admin.html" : "index.html";
     }
 
-    function login() {
+    async function login() {
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value;
       const errEl = document.getElementById("error-msg");
       errEl.style.display = "none";
 
-      if (username === "student" && password === "student") {
-        sessionStorage.setItem("user", JSON.stringify({ id: 1, username: "Anna", role: "student" }));
-        location.href = "index.html";
-      } else if (username === "admin" && password === "admin") {
-        sessionStorage.setItem("user", JSON.stringify({ id: 0, username: "Admin", role: "admin" }));
-        location.href = "admin.html";
-      } else {
-        errEl.textContent = "Invalid username or password.";
+      try {
+        const res = await fetch("http://localhost:8000/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (!res.ok) {
+          errEl.textContent = "Invalid username or password.";
+          errEl.style.display = "block";
+          return;
+        }
+
+        const user = await res.json();
+        sessionStorage.setItem("user", JSON.stringify(user));
+        location.href = user.role === "admin" ? "admin.html" : "index.html";
+      } catch {
+        errEl.textContent = "Could not connect to server.";
         errEl.style.display = "block";
       }
     }
