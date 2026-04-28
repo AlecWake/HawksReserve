@@ -9,8 +9,9 @@ router = APIRouter()
 
 
 @router.get("/rooms")
-def get_available_rooms(building: str, date: str, start_time: str, db: Session = Depends(get_db)):
+def get_available_rooms(building: str, date: str, start_time: str, end_time: str, db: Session = Depends(get_db)):
     requested_start = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
+    requested_end = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
 
     all_rooms = db.query(Room).filter(Room.building == building).all()
 
@@ -19,7 +20,7 @@ def get_available_rooms(building: str, date: str, start_time: str, db: Session =
         r.room_id for r in db.query(Reservation.room_id).filter(
             and_(
                 Reservation.status.in_(["active", "blocked"]),
-                Reservation.start_time <= requested_start,
+                Reservation.start_time < requested_end,
                 Reservation.end_time > requested_start
             )
         ).all()
