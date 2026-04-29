@@ -49,10 +49,7 @@
     const building  = params.get("building");
     const date      = params.get("date");
     const startTime = params.get("start_time");
-
-    const [h, m] = startTime.split(":").map(Number);
-    const endH = String(h + 1).padStart(2, "0");
-    const endTime = `${endH}:${String(m).padStart(2, "0")}`;
+    const endTime = params.get("end_time");
 
     function fmt12(timeStr) {
       const [hh, mm] = timeStr.split(":").map(Number);

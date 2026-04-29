@@ -206,7 +206,7 @@
 
       try {
         const res = await fetch(
-          `${API}/rooms?building=${encodeURIComponent(building)}&date=${selectedDate}&start_time=${selectedStart}`
+          `${API}/rooms?building=${encodeURIComponent(building)}&date=${selectedDate}&start_time=${selectedStart}&end_time=${endVal}`
         );
         const rooms = await res.json();
 
