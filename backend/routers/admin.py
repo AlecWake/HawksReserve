@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from pydantic import BaseModel
 from datetime import datetime
 from database import get_db
@@ -77,6 +78,54 @@ def admin_cancel(reservation_id: int, data: CancelRequest, db: Session = Depends
 
     reservation.status = "cancelled"
     reservation.cancellation_reason = data.reason
+    db.commit()
+
+    return {"success": True}
+
+@router.post("/reservations/{reservation_id}/restore")
+def restore_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
+
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found.")
+
+    if reservation.status != "cancelled":
+        raise HTTPException(status_code=400, detail="Reservation is not cancelled.")
+
+    conflict = db.query(Reservation).filter(
+        and_(
+            Reservation.id != reservation.id,
+            Reservation.room_id == reservation.room_id,
+            Reservation.status.in_(["active", "blocked"]),
+            Reservation.start_time < reservation.end_time,
+            Reservation.end_time > reservation.start_time
+        )
+    ).first()
+
+    if conflict:
+        raise HTTPException(
+            status_code=409,
+            detail="This reservation cannot be restored because the room/time is no longer available."
+        )
+
+    reservation.status = "active"
+    reservation.cancellation_reason = None
+    db.commit()
+
+    return {"success": True}
+
+# delete a blocked room reservation
+@router.delete("/reservations/{reservation_id}/block")
+def delete_blocked_room(reservation_id: int, db: Session = Depends(get_db)):
+    reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
+
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found.")
+
+    if reservation.status != "blocked":
+        raise HTTPException(status_code=400, detail="Only blocked rooms can be deleted.")
+
+    db.delete(reservation)
     db.commit()
 
     return {"success": True}

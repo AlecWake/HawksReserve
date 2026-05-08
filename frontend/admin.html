@@ -104,62 +104,136 @@
 
     // ---- Reservations tab ----
 
+    let allReservations = [];
+
     async function loadReservations() {
       const container = document.getElementById("reservations-content");
       try {
         const res = await fetch(`${API}/admin/reservations`);
-        const data = await res.json();
+        allReservations = await res.json();
 
-        if (data.length === 0) {
+        if (allReservations.length === 0) {
           container.innerHTML = "<p style='color:#666'>No reservations found.</p>";
           return;
         }
 
-        container.innerHTML = `
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Building</th>
-                <th>Room</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${data.map(r => `
-                <tr id="row-${r.id}">
-                  <td>${r.student_id === 0 ? "—" : r.student_id}</td>
-                  <td>${r.building}</td>
-                  <td>${r.room_num}</td>
-                  <td>${r.start_time}</td>
-                  <td>${r.end_time}</td>
-                  <td>
-                    ${r.status}
-                    ${r.cancellation_reason ? `<br><small style="color:#888;">${r.cancellation_reason}</small>` : ""}
-                  </td>
-                  <td>
-                    ${r.status === "active" ? `<button class="btn-sm" onclick="startCancel(${r.id})">Cancel</button>` : ""}
-                  </td>
-                </tr>
-                <tr id="cancel-form-${r.id}" style="display:none">
-                  <td colspan="7" style="padding:8px 14px; background:#fafafa;">
-                    <div style="display:flex; gap:8px; align-items:center;">
-                      <input type="text" id="reason-${r.id}" placeholder="Reason for cancellation" style="flex:1; max-width:360px;">
-                      <button class="btn-sm" onclick="confirmCancel(${r.id})">Confirm</button>
-                      <button class="btn-sm btn-outline" onclick="closeCancel(${r.id})">Back</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        `;
+        renderReservationFilters();
+        renderReservations();
       } catch {
         container.innerHTML = "<p>Could not load reservations. Is the server running?</p>";
       }
+    }
+
+    // build the reservation filter dropdowns
+    function renderReservationFilters() {
+      const container = document.getElementById("reservations-content");
+
+      const studentIds = [...new Set(
+        allReservations
+          .filter(r => r.student_id !== 0)
+          .map(r => r.student_id)
+      )].sort((a, b) => a - b);
+
+      container.innerHTML = `
+        <div class="search-form" style="max-width:none; display:flex; gap:12px; flex-wrap:wrap;">
+          <div class="form-group" style="min-width:160px;">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" onchange="renderReservations()">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="min-width:200px;">
+            <label for="filter-building">Building</label>
+            <select id="filter-building" onchange="renderReservations()">
+              <option value="all">All</option>
+              <option value="Memorial Union">Memorial Union</option>
+              <option value="Chester Fritz Library">Chester Fritz Library</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="min-width:140px;">
+            <label for="filter-student">Student ID</label>
+            <select id="filter-student" onchange="renderReservations()">
+              <option value="all">All</option>
+              ${studentIds.map(id => `<option value="${id}">${id}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+
+        <div id="reservations-table-content"></div>
+      `;
+    }
+
+    // apply filters and rebuild the reservations table
+    function renderReservations() {
+      const tableContainer = document.getElementById("reservations-table-content");
+
+      const statusFilter = document.getElementById("filter-status").value;
+      const buildingFilter = document.getElementById("filter-building").value;
+      const studentFilter = document.getElementById("filter-student").value;
+
+      const filtered = allReservations.filter(r => {
+        const statusMatch = statusFilter === "all" || r.status === statusFilter;
+        const buildingMatch = buildingFilter === "all" || r.building === buildingFilter;
+        const studentMatch = studentFilter === "all" || String(r.student_id) === studentFilter;
+
+        return statusMatch && buildingMatch && studentMatch;
+      });
+
+      if (filtered.length === 0) {
+        tableContainer.innerHTML = "<p style='color:#666'>No reservations match the selected filters.</p>";
+        return;
+      }
+
+      tableContainer.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Building</th>
+              <th>Room</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(r => `
+              <tr id="row-${r.id}">
+                <td>${r.student_id === 0 ? "—" : r.student_id}</td>
+                <td>${r.building}</td>
+                <td>${r.room_num}</td>
+                <td>${r.start_time}</td>
+                <td>${r.end_time}</td>
+                <td>
+                  ${r.status}
+                  ${r.cancellation_reason ? `<br><small style="color:#888;">${r.cancellation_reason}</small>` : ""}
+                </td>
+                <td>
+                  ${r.status === "active" ? `<button class="btn-sm" onclick="startCancel(${r.id})">Cancel</button>` : ""}
+                  ${r.status === "cancelled" ? `<button class="btn-sm" onclick="restoreReservation(${r.id})">Undo</button>` : ""}
+                  ${r.status === "blocked" ? `<button class="btn-sm" onclick="deleteBlock(${r.id})">Delete Block</button>`
+  : ""}
+                </td>
+              </tr>
+              <tr id="cancel-form-${r.id}" style="display:none">
+                <td colspan="7" style="padding:8px 14px; background:#fafafa;">
+                  <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" id="reason-${r.id}" placeholder="Reason for cancellation" style="flex:1; max-width:360px;">
+                    <button class="btn-sm" onclick="confirmCancel(${r.id})">Confirm</button>
+                    <button class="btn-sm btn-outline" onclick="closeCancel(${r.id})">Back</button>
+                  </div>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
     }
 
     function startCancel(id) {
@@ -299,6 +373,39 @@
       msgEl.className = res.ok ? "success-box" : "error-box";
       msgEl.textContent = res.ok ? "Settings saved." : (data.detail || "Error saving settings.");
       msgEl.style.display = "block";
+    }
+
+    async function restoreReservation(id) {
+      const res = await fetch(`${API}/admin/reservations/${id}/restore`, {
+        method: "POST"
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        loadReservations();
+      } else {
+        alert(data.detail || "Error restoring reservation.");
+      }
+    }
+
+    async function deleteBlock(id) {
+      if (!confirm("Delete this room block?")) return;
+
+      const res = await fetch(
+        `${API}/admin/reservations/${id}/block`,
+        {
+          method: "DELETE"
+        }
+      );
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        loadReservations();
+      } else {
+        alert(data.detail || "Error deleting room block.");
+      }
     }
 
     loadReservations();
