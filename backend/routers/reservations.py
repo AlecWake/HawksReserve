@@ -64,6 +64,22 @@ def create_reservation(data: ReservationCreate, db: Session = Depends(get_db)):
             status_code=409,
             content={"success": False, "error": "Room is no longer available for that time slot."}
         )
+    
+        # make sure the student does not already have another active reservation at this time
+    student_conflict = db.query(Reservation).filter(
+        and_(
+            Reservation.student_id == data.student_id,
+            Reservation.status == "active",
+            Reservation.start_time < end,
+            Reservation.end_time > start
+        )
+    ).first()
+
+    if student_conflict:
+        return JSONResponse(
+            status_code=409,
+            content={"success": False, "error": "This reservation overlaps with a previous reservation."}
+        )
 
     # enforce the weekly limit — read from DB so admin can change it
     constraints = db.query(SystemConstraints).first()
